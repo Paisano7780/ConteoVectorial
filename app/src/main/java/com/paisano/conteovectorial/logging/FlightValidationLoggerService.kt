@@ -16,6 +16,9 @@ import java.io.FileOutputStream
  * 3) Integración posterior con flujo de revisión en HitlValidationActivity.
  */
 class FlightValidationLoggerService(private val context: Context) {
+    companion object {
+        private const val EXPECTED_KEYPOINT_VECTOR_SIZE = 4
+    }
 
     fun persistCapture(
         nv21Frame: ByteArray,
@@ -43,7 +46,7 @@ class FlightValidationLoggerService(private val context: Context) {
                 append(keypointsNormalized.getOrElse(0) { 0f }).append(' ')
                 append(keypointsNormalized.getOrElse(1) { 0f }).append(' ')
                 append(keypointsNormalized.getOrElse(2) { 0f }).append(' ')
-                append(keypointsNormalized.getOrElse(3) { 0f }).append('\n')
+                append(keypointsNormalized.getOrElse(EXPECTED_KEYPOINT_VECTOR_SIZE - 1) { 0f }).append('\n')
             }
         )
 

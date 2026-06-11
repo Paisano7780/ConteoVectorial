@@ -22,9 +22,15 @@ Java_com_paisano_conteovectorial_nativebridge_NativeVisionBridge_inferKeypointsF
         jint width,
         jint height) {
 
-    const jsize frameSize = frame_nv21 == nullptr ? 0 : env->GetArrayLength(frame_nv21);
-    if (frame_nv21 == nullptr || width <= 0 || height <= 0 || length <= 0 ||
-        offset < 0 || offset >= frameSize || offset + length > frameSize) {
+    if (frame_nv21 == nullptr || width <= 0 || height <= 0 || length <= 0) {
+        LOGI("Frame inválido recibido en JNI");
+        jfloat fallback[4] = {0.25F, 0.25F, 0.75F, 0.75F};
+        jfloatArray output = env->NewFloatArray(4);
+        env->SetFloatArrayRegion(output, 0, 4, fallback);
+        return output;
+    }
+    const jsize frameSize = env->GetArrayLength(frame_nv21);
+    if (offset < 0 || offset >= frameSize || offset + length > frameSize) {
         LOGI("Frame inválido recibido en JNI");
         jfloat fallback[4] = {0.25F, 0.25F, 0.75F, 0.75F};
         jfloatArray output = env->NewFloatArray(4);
