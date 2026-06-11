@@ -3,39 +3,54 @@ package com.desdelaire.vectorcount.logging
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Environment
+import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
 
 class FlightValidationLoggerService(private val context: Context) {
-    fun persistCapture(bitmap: Bitmap, keypointsNormalized: FloatArray): Pair<File, File> {
-        val timestamp = System.currentTimeMillis()
-        val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: context.filesDir
-        val outDir = File(
-            baseDir,
-            "VectorCount_Dataset"
-        ).apply { mkdirs() }
+    companion object {
+        private const val TAG = "FlightValidationLogger"
+        private const val EXPECTED_KEYPOINT_COUNT = 4
+    }
 
-        val jpgFile = File(outDir, "frame_$timestamp.jpg")
-        val txtFile = File(outDir, "frame_$timestamp.txt")
+    fun persistCapture(bitmap: Bitmap, keypointsNormalized: FloatArray): Boolean {
+        return try {
+            val timestamp = System.currentTimeMillis()
+            val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: context.filesDir
+            val outDir = File(
+                baseDir,
+                "VectorCount_Dataset"
+            ).apply { mkdirs() }
 
-        FileOutputStream(jpgFile).use { outputStream ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+            val jpgFile = File(outDir, "frame_$timestamp.jpg")
+            val txtFile = File(outDir, "frame_$timestamp.txt")
+
+            FileOutputStream(jpgFile).use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+            }
+
+            txtFile.writeText(buildString {
+                for (index in 0 until EXPECTED_KEYPOINT_COUNT) {
+                    if (index > 0) {
+                        append(' ')
+                    }
+                    append(keypointsNormalized.getOrElse(index) { 0f })
+                }
+                append('\n')
+            })
+
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Capture persistence failed", e)
+            false
         }
-
-        txtFile.writeText(buildString {
-            append(keypointsNormalized.getOrElse(0) { 0f }.normalizedValue()).append(' ')
-            append(keypointsNormalized.getOrElse(1) { 0f }.normalizedValue()).append(' ')
-            append(keypointsNormalized.getOrElse(2) { 0f }.normalizedValue()).append(' ')
-            append(keypointsNormalized.getOrElse(3) { 0f }.normalizedValue())
-            append('\n')
-        })
-
-        return jpgFile to txtFile
     }
 
     fun approve(txtFile: File) {
         val locked = File(txtFile.parentFile, txtFile.nameWithoutExtension + ".locked.txt")
-        txtFile.renameTo(locked)
+        if (!txtFile.renameTo(locked)) {
+            Log.e(TAG, "Failed to rename approved file")
+        }
     }
 
     fun reject(txtFile: File) {
@@ -44,13 +59,5 @@ class FlightValidationLoggerService(private val context: Context) {
 
     fun modify(txtFile: File, ax: Float, ay: Float, bx: Float, by: Float) {
         txtFile.writeText("$ax $ay $bx $by\n")
-    }
-
-    private fun Float.normalizedValue(): Float {
-        return if (isFinite()) {
-            coerceIn(0f, 1f)
-        } else {
-            0f
-        }
     }
 }

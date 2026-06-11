@@ -13,6 +13,8 @@ import android.os.Message
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.widget.TextView
+import android.widget.Toast
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -21,8 +23,9 @@ import com.desdelaire.vectorcount.logging.FlightValidationLoggerService
 import com.desdelaire.vectorcount.video.DjiVideoStreamRepository
 import com.desdelaire.vectorcount.vision.VisionProcessor
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.v5.common.error.IDJIError
@@ -57,9 +60,18 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private var surfaceHolder: SurfaceHolder? = null
     private val videoStreamRepository = DjiVideoStreamRepository()
     private val flightValidationLoggerService by lazy { FlightValidationLoggerService(this) }
+    private val captureScope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
     private var isSdkRegistered = false
+
+    companion object {
+        private const val TAG = "MainActivity"
+        private const val REQUEST_PERMISSIONS_CODE = 1001
+        private const val THREAD_SHUTDOWN_TIMEOUT_MS = 500L
+        private const val CAPTURE_FEEDBACK_ALPHA = 0.35f
+        private const val CAPTURE_FEEDBACK_DURATION_MS = 100L
+    }
 
     private val runtimePermissions: Array<String>
         get() {
@@ -82,20 +94,40 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         sdkStatusText = findViewById(R.id.sdkStatusText)
         val captureFab = findViewById<FloatingActionButton>(R.id.captureFab)
         captureFab.setOnClickListener {
-            val snapshot = synchronized(bitmapLock) {
-                val bitmap = preallocatedBitmap?.copy(Bitmap.Config.ARGB_8888, false)
-                val keypoints = latestKeypoints?.copyOf()
-                if (bitmap != null && keypoints != null) {
-                    bitmap to keypoints
-                } else {
-                    null
+            captureFab.alpha = CAPTURE_FEEDBACK_ALPHA
+            captureFab.postDelayed({ captureFab.alpha = 1f }, CAPTURE_FEEDBACK_DURATION_MS)
+            captureScope.launch {
+                val snapshot = synchronized(bitmapLock) {
+                    val bitmap = preallocatedBitmap?.copy(Bitmap.Config.ARGB_8888, false)
+                    val keypoints = latestKeypoints?.copyOf()
+                    if (bitmap != null && keypoints != null) {
+                        bitmap to keypoints
+                    } else {
+                        null
+                    }
                 }
-            }
-            if (snapshot != null) {
-                captureFab.alpha = 0.35f
-                captureFab.postDelayed({ captureFab.alpha = 1f }, 100L)
-                CoroutineScope(Dispatchers.IO).launch {
-                    flightValidationLoggerService.persistCapture(snapshot.first, snapshot.second)
+                if (snapshot != null) {
+                    val capturedBitmap = snapshot.first
+                    try {
+                        val saved = flightValidationLoggerService.persistCapture(capturedBitmap, snapshot.second)
+                        runOnUiThread {
+                            Toast.makeText(
+                                this@MainActivity,
+                                if (saved) "Captura guardada" else "Error al guardar captura",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } finally {
+                        capturedBitmap.recycle()
+                    }
+                } else {
+                    runOnUiThread {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Sin datos disponibles",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         }
@@ -149,6 +181,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     override fun onDestroy() {
         super.onDestroy()
         unsubscribeFromVideo()
+        captureScope.cancel()
         backgroundThread.quitSafely()
         try {
             backgroundThread.join(THREAD_SHUTDOWN_TIMEOUT_MS)
@@ -267,11 +300,14 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
             if (success) {
                 val detectedKeypoints = try {
                     visionProcessor.detectKeypoints(assets, currentBitmap)
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.e(TAG, "Keypoint detection failed", e)
                     null
                 }
                 if (detectedKeypoints != null) {
-                    latestKeypoints = detectedKeypoints.copyOf()
+                    synchronized(bitmapLock) {
+                        latestKeypoints = detectedKeypoints
+                    }
                 }
                 val holder = surfaceHolder ?: return
                 var canvas: Canvas? = null
@@ -282,13 +318,13 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
                         canvas.drawBitmap(currentBitmap, null, destRect, null)
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    Log.e(TAG, "Frame rendering failed", e)
                 } finally {
                     if (canvas != null) {
                         try {
                             holder.unlockCanvasAndPost(canvas)
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            Log.e(TAG, "Canvas post failed", e)
                         }
                     }
                 }
@@ -296,8 +332,4 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         }
     }
 
-    companion object {
-        private const val REQUEST_PERMISSIONS_CODE = 1001
-        private const val THREAD_SHUTDOWN_TIMEOUT_MS = 500L
-    }
 }
