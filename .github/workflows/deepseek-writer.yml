@@ -43,7 +43,7 @@ jobs:
 
       - name: Crear Pull Request
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.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 }}
         run: |
           # Usar la API de GitHub para crear el PR [citation:2][citation:7]
           curl -X POST \
