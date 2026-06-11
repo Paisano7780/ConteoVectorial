@@ -1,0 +1,17 @@
+name: Generate Project Zip
+on: [push]
+jobs:
+  zip-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Zip
+        run: zip -r project.zip . -x "*.git*" "*/build/*" "*/.gradle/*"
+
+      - name: Upload Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-zip
+          path: project.zip
