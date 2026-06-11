@@ -1,4 +1,4 @@
-package com.paisano.conteovectorial.logging
+package com.desdelaire.vectorcount.logging
 
 import android.content.Context
 import android.graphics.ImageFormat

@@ -1,4 +1,4 @@
-package com.paisano.conteovectorial.video
+package com.desdelaire.vectorcount.video
 
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.v5.manager.datacenter.MediaDataCenter

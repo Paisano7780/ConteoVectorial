@@ -1,4 +1,4 @@
-package com.paisano.conteovectorial.nativebridge
+package com.desdelaire.vectorcount.nativebridge
 
 /**
  * Puente JNI para visión computacional.

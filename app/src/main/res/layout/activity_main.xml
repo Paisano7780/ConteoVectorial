@@ -5,9 +5,10 @@
     android:padding="16dp">
 
     <TextView
+        android:id="@+id/sdkStatusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="SMVP - Scaffold DJI MSDK V5 + JNI"
+        android:text="Registrando SDK..."
         android:textSize="18sp" />
 
 </FrameLayout>
