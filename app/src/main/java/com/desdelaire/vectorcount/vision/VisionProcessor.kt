@@ -17,4 +17,6 @@ class VisionProcessor {
         height: Int,
         outBitmap: Bitmap
     ): Boolean
+
+    external fun detectKeypoints(assetManager: android.content.res.AssetManager, bitmap: android.graphics.Bitmap): FloatArray
 }
