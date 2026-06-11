@@ -1,4 +1,4 @@
-package com.desdelaire.vectorcount.hitl
+package com.paisano.conteovectorial.hitl
 
 import android.content.Context
 import android.graphics.Canvas
@@ -8,13 +8,6 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 
-/**
- * Vista táctil para editar keypoints/vector de validación.
- *
- * Stub de arquitectura:
- * - Dibuja dos puntos (A y B) y su vector.
- * - Expone callback cuando el usuario arrastra puntos para reescribir coordenadas en TXT.
- */
 class HitlOverlayView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
@@ -45,7 +38,6 @@ class HitlOverlayView @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_MOVE) {
-            // Etapa 1 (simple): mover punto B con arrastre para habilitar edición del vector.
             pointBX = event.x
             pointBY = event.y
             onPointsChanged?.invoke(pointAX, pointAY, pointBX, pointBY)

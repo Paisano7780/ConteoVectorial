@@ -1,4 +1,4 @@
-package com.desdelaire.vectorcount
+package com.paisano.conteovectorial
 
 import android.app.Application
 
