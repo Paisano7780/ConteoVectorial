@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private lateinit var backgroundThread: HandlerThread
     private lateinit var backgroundHandler: Handler
 
+    private val frameLock = Any()
     @Volatile
     private var latestFrameData: ByteArray? = null
     @Volatile
@@ -42,6 +43,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     @Volatile
     private var latestHeight: Int = 0
 
+    private val bitmapLock = Any()
     private var preallocatedBitmap: Bitmap? = null
     private val visionProcessor = VisionProcessor()
     private val destRect = Rect()
@@ -79,12 +81,21 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         backgroundHandler = object : Handler(backgroundThread.looper) {
             override fun handleMessage(msg: Message) {
                 if (msg.what == MSG_PROCESS_FRAME) {
-                    val data = latestFrameData ?: return
-                    val offset = latestOffset
-                    val length = latestLength
-                    val width = latestWidth
-                    val height = latestHeight
-                    processAndDrawFrame(data, offset, length, width, height)
+                    var data: ByteArray?
+                    var offset: Int
+                    var length: Int
+                    var width: Int
+                    var height: Int
+                    synchronized(frameLock) {
+                        data = latestFrameData
+                        offset = latestOffset
+                        length = latestLength
+                        width = latestWidth
+                        height = latestHeight
+                    }
+                    if (data != null) {
+                        processAndDrawFrame(data!!, offset, length, width, height)
+                    }
                 }
             }
         }
@@ -112,6 +123,15 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         super.onDestroy()
         unsubscribeFromVideo()
         backgroundThread.quitSafely()
+        try {
+            backgroundThread.join(THREAD_SHUTDOWN_TIMEOUT_MS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+        synchronized(bitmapLock) {
+            preallocatedBitmap?.recycle()
+            preallocatedBitmap = null
+        }
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -171,11 +191,13 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private fun subscribeToVideo() {
         videoStreamRepository.subscribeToNv21Frames(ComponentIndexType.LEFT_OR_MAIN) { frameData, offset, length, width, height ->
-            latestFrameData = frameData
-            latestOffset = offset
-            latestLength = length
-            latestWidth = width
-            latestHeight = height
+            synchronized(frameLock) {
+                latestFrameData = frameData
+                latestOffset = offset
+                latestLength = length
+                latestWidth = width
+                latestHeight = height
+            }
 
             backgroundHandler.removeMessages(MSG_PROCESS_FRAME)
             backgroundHandler.sendEmptyMessage(MSG_PROCESS_FRAME)
@@ -193,37 +215,46 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         width: Int,
         height: Int
     ) {
-        var bitmap = preallocatedBitmap
-        if (bitmap == null || bitmap.width != width || bitmap.height != height) {
-            bitmap?.recycle()
-            bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            preallocatedBitmap = bitmap
-        }
-
-        val success = visionProcessor.processFrameToBitmap(
-            frameData,
-            offset,
-            length,
-            width,
-            height,
-            bitmap
-        )
-
-        if (success) {
-            val holder = surfaceHolder ?: return
-            var canvas: Canvas? = null
-            try {
-                canvas = holder.lockCanvas()
-                if (canvas != null) {
-                    destRect.set(0, 0, canvas.width, canvas.height)
-                    canvas.drawBitmap(bitmap, null, destRect, null)
+        synchronized(bitmapLock) {
+            val bitmap = preallocatedBitmap ?: Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
+                preallocatedBitmap = it
+            }
+            val currentBitmap = if (bitmap.width != width || bitmap.height != height) {
+                bitmap.recycle()
+                Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
+                    preallocatedBitmap = it
                 }
-            } catch (e: Exception) {
-            } finally {
-                if (canvas != null) {
-                    try {
-                        holder.unlockCanvasAndPost(canvas)
-                    } catch (e: Exception) {
+            } else {
+                bitmap
+            }
+
+            val success = visionProcessor.processFrameToBitmap(
+                frameData,
+                offset,
+                length,
+                width,
+                height,
+                currentBitmap
+            )
+
+            if (success) {
+                val holder = surfaceHolder ?: return
+                var canvas: Canvas? = null
+                try {
+                    canvas = holder.lockCanvas()
+                    if (canvas != null) {
+                        destRect.set(0, 0, canvas.width, canvas.height)
+                        canvas.drawBitmap(currentBitmap, null, destRect, null)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    if (canvas != null) {
+                        try {
+                            holder.unlockCanvasAndPost(canvas)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             }
@@ -232,5 +263,6 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     companion object {
         private const val REQUEST_PERMISSIONS_CODE = 1001
+        private const val THREAD_SHUTDOWN_TIMEOUT_MS = 500L
     }
 }
