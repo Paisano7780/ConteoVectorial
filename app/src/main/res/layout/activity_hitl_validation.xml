@@ -3,9 +3,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.desdelaire.vectorcount.hitl.HitlOverlayView
-        android:id="@+id/hitlOverlay"
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter" />
+
+    <com.desdelaire.vectorcount.hitl.KeypointCanvasView
+        android:id="@+id/keypointCanvas"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:textSize="16sp"
+        android:visibility="gone" />
 
 </FrameLayout>
