@@ -17,8 +17,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.desdelaire.vectorcount.msdk.MsdkManager
+import com.desdelaire.vectorcount.logging.FlightValidationLoggerService
 import com.desdelaire.vectorcount.video.DjiVideoStreamRepository
 import com.desdelaire.vectorcount.vision.VisionProcessor
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.v5.common.error.IDJIError
 
@@ -42,6 +47,8 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private var latestWidth: Int = 0
     @Volatile
     private var latestHeight: Int = 0
+    @Volatile
+    private var latestKeypoints: FloatArray? = null
 
     private val bitmapLock = Any()
     private var preallocatedBitmap: Bitmap? = null
@@ -49,6 +56,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private val destRect = Rect()
     private var surfaceHolder: SurfaceHolder? = null
     private val videoStreamRepository = DjiVideoStreamRepository()
+    private val flightValidationLoggerService by lazy { FlightValidationLoggerService(this) }
 
     @Volatile
     private var isSdkRegistered = false
@@ -72,6 +80,25 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         sdkStatusText = findViewById(R.id.sdkStatusText)
+        val captureFab = findViewById<FloatingActionButton>(R.id.captureFab)
+        captureFab.setOnClickListener {
+            val snapshot = synchronized(bitmapLock) {
+                val bitmap = preallocatedBitmap?.copy(Bitmap.Config.ARGB_8888, false)
+                val keypoints = latestKeypoints?.copyOf()
+                if (bitmap != null && keypoints != null) {
+                    bitmap to keypoints
+                } else {
+                    null
+                }
+            }
+            if (snapshot != null) {
+                captureFab.alpha = 0.35f
+                captureFab.postDelayed({ captureFab.alpha = 1f }, 100L)
+                CoroutineScope(Dispatchers.IO).launch {
+                    flightValidationLoggerService.persistCapture(snapshot.first, snapshot.second)
+                }
+            }
+        }
 
         val surfaceView = findViewById<SurfaceView>(R.id.cameraSurfaceView)
         surfaceView.holder.addCallback(this)
@@ -238,6 +265,14 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
             )
 
             if (success) {
+                val detectedKeypoints = try {
+                    visionProcessor.detectKeypoints(assets, currentBitmap)
+                } catch (_: Exception) {
+                    null
+                }
+                if (detectedKeypoints != null) {
+                    latestKeypoints = detectedKeypoints.copyOf()
+                }
                 val holder = surfaceHolder ?: return
                 var canvas: Canvas? = null
                 try {
