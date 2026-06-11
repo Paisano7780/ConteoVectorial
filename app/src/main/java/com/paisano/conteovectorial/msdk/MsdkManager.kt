@@ -1,4 +1,4 @@
-package com.paisano.conteovectorial.msdk
+package com.desdelaire.vectorcount.msdk
 
 import android.content.Context
 import android.util.Log
@@ -8,30 +8,44 @@ import dji.v5.manager.SDKManager
 import dji.v5.manager.interfaces.SDKManagerCallback
 import dji.v5.network.DJINetworkManager
 
-/**
- * Facade de inicialización/registro para DJI Mobile SDK V5.
- *
- * Responsabilidades de arquitectura:
- * 1) Inicializar MSDK una sola vez y desacoplar la UI de callbacks de bajo nivel.
- * 2) Reportar explícitamente éxito/fallo de registro contra servidores DJI.
- * 3) Reintentar registro si vuelve la conectividad y el SDK aún no está registrado.
- */
 object MsdkManager {
 
     private const val TAG = "MsdkManager"
+    private const val PACKAGE_MISMATCH_ERROR = "REGISTRATION_RESULT_APP_KEY_AND_PACKAGE_NAME_MISMATCH"
+
+    interface SDKRegistrationCallback {
+        fun onRegisterSuccess()
+        fun onRegisterFailure(error: IDJIError)
+    }
+
     @Volatile
     private var sdkInitialized = false
 
-    fun initialize(context: Context) {
-        if (sdkInitialized) return
+    fun initSDK(context: Context, callback: SDKRegistrationCallback) {
+        if (sdkInitialized) {
+            if (SDKManager.getInstance().isRegistered) {
+                callback.onRegisterSuccess()
+            }
+            return
+        }
 
         SDKManager.getInstance().init(context.applicationContext, object : SDKManagerCallback {
             override fun onRegisterSuccess() {
                 Log.i(TAG, "Registro DJI exitoso")
+                callback.onRegisterSuccess()
             }
 
             override fun onRegisterFailure(error: IDJIError) {
-                Log.e(TAG, "Registro DJI fallido: $error")
+                val errorText = error.toString()
+                Log.e(TAG, "Registro DJI fallido: $errorText")
+                if (errorText.contains(PACKAGE_MISMATCH_ERROR)) {
+                    Log.w(
+                        TAG,
+                        "El Package Name no coincide con el registrado en el portal de DJI. " +
+                            "Verifica que sea exactamente com.desdelaire.vectorcount"
+                    )
+                }
+                callback.onRegisterFailure(error)
             }
 
             override fun onProductDisconnect(productId: Int) {

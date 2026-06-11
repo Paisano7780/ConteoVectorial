@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.paisano.conteovectorial.hitl.HitlOverlayView
+    <com.desdelaire.vectorcount.hitl.HitlOverlayView
         android:id="@+id/hitlOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

@@ -1,8 +1,8 @@
-package com.paisano.conteovectorial.hitl
+package com.desdelaire.vectorcount.hitl
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.paisano.conteovectorial.R
+import com.desdelaire.vectorcount.R
 
 /**
  * UI secundaria para validación Human-in-the-Loop.

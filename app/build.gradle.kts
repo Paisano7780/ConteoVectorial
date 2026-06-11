@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.paisano.conteovectorial"
+    namespace = "com.desdelaire.vectorcount"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.paisano.conteovectorial"
+        applicationId = "com.desdelaire.vectorcount"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
