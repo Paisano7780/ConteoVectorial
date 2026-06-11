@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // En Android 13+ READ/WRITE_EXTERNAL_STORAGE están deprecados y no se solicitan.
                 permissions.remove(Manifest.permission.READ_EXTERNAL_STORAGE)
                 permissions.remove(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
@@ -48,10 +49,15 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_PERMISSIONS_CODE && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+        if (
+            requestCode == REQUEST_PERMISSIONS_CODE &&
+            grantResults.isNotEmpty() &&
+            grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        ) {
             registerSdk()
         } else {
-            sdkStatusText.text = "❌ Error de Registro: Permisos requeridos no concedidos"
+            sdkStatusText.text =
+                "❌ Error de Registro: Permisos no concedidos. Habilítalos en Configuración de la app."
         }
     }
 
