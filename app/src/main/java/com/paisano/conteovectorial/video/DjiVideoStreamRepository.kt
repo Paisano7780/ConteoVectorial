@@ -1,4 +1,4 @@
-package com.desdelaire.vectorcount.video
+package com.paisano.conteovectorial.video
 
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.v5.manager.datacenter.MediaDataCenter
@@ -27,8 +27,6 @@ class DjiVideoStreamRepository {
                 height: Int,
                 format: ICameraStreamManager.FrameFormat
             ) {
-                // Etapa 1: se reenvía el buffer original con offset/length para evitar copias
-                // y permitir que JNI use puntero directo al arreglo subyacente.
                 onFrame(frameData, offset, length, width, height)
             }
         }

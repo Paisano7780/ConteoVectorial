@@ -1,4 +1,4 @@
-package com.desdelaire.vectorcount.msdk
+package com.paisano.conteovectorial.msdk
 
 import android.content.Context
 import android.util.Log
@@ -49,7 +49,7 @@ object MsdkManager {
                         Log.w(
                             TAG,
                             "El Package Name no coincide con el registrado en el portal de DJI. " +
-                                "Verifica que sea exactamente com.desdelaire.vectorcount"
+                                "Verifica que sea exactamente com.paisano.conteovectorial"
                         )
                     }
                     registrationCallback?.onRegisterFailure(error)

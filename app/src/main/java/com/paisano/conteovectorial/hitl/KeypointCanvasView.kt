@@ -1,4 +1,4 @@
-package com.desdelaire.vectorcount.hitl
+package com.paisano.conteovectorial.hitl
 
 import android.content.Context
 import android.graphics.Canvas

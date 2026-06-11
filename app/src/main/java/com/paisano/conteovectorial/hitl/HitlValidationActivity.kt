@@ -1,4 +1,4 @@
-package com.desdelaire.vectorcount.hitl
+package com.paisano.conteovectorial.hitl
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -11,7 +11,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GestureDetectorCompat
-import com.desdelaire.vectorcount.R
+import com.paisano.conteovectorial.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch

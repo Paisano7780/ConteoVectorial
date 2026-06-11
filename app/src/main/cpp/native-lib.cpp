@@ -12,7 +12,7 @@ const int THICKNESS = 2;
 }
 
 extern "C" JNIEXPORT jbyteArray JNICALL
-Java_com_desdelaire_vectorcount_vision_VisionProcessor_processFrame(
+Java_com_paisano_conteovectorial_vision_VisionProcessor_processFrame(
         JNIEnv *env,
         jobject thiz,
         jbyteArray yuvData,
@@ -41,7 +41,7 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_processFrame(
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_desdelaire_vectorcount_vision_VisionProcessor_processFrameToBitmap(
+Java_com_paisano_conteovectorial_vision_VisionProcessor_processFrameToBitmap(
         JNIEnv *env,
         jobject thiz,
         jbyteArray yuvData,
@@ -84,11 +84,10 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_processFrameToBitmap(
 }
 
 #include <ncnn/net.h>
-// Instancia global de NCNN
 static ncnn::Net yolov8;
 
 extern "C" JNIEXPORT jfloatArray JNICALL
-Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(JNIEnv *env, jobject thiz, jobject assetManager, jobject bitmap) {
+Java_com_paisano_conteovectorial_vision_VisionProcessor_detectKeypoints(JNIEnv *env, jobject thiz, jobject assetManager, jobject bitmap) {
     jfloatArray result = env->NewFloatArray(4);
     jfloat dummy[4] = {0.25f, 0.25f, 0.75f, 0.75f};
     env->SetFloatArrayRegion(result, 0, 4, dummy);
