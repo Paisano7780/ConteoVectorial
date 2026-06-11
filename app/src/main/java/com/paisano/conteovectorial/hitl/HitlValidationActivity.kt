@@ -1,6 +1,5 @@
 package com.desdelaire.vectorcount.hitl
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
@@ -13,7 +12,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GestureDetectorCompat
 import com.desdelaire.vectorcount.R
-import com.desdelaire.vectorcount.logging.FlightValidationLoggerService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -27,7 +25,6 @@ class HitlValidationActivity : AppCompatActivity() {
     private lateinit var gestureDetector: GestureDetectorCompat
     private val dataset = mutableListOf<Pair<File, File>>()
     private var currentIndex = 0
-    private val loggerService by lazy { FlightValidationLoggerService(this) }
     private var currentBitmap: Bitmap? = null
     private var currentTxtFile: File? = null
 
@@ -202,8 +199,11 @@ class HitlValidationActivity : AppCompatActivity() {
         }
     }
 
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
-        return gestureDetector.onTouchEvent(event ?: return false) || super.onTouchEvent(event)
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        if (ev != null) {
+            gestureDetector.onTouchEvent(ev)
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
@@ -237,5 +237,8 @@ class HitlValidationActivity : AppCompatActivity() {
         currentBitmap?.recycle()
     }
 }
+
+
+
 
 
