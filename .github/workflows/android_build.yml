@@ -1,0 +1,63 @@
+name: Android Build
+
+on:
+  workflow_dispatch:
+
+# Para habilitar CI continua en una siguiente etapa, descomenta:
+# on:
+#   push:
+#     branches: [ "main" ]
+#   pull_request:
+#     branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;26.3.11579264" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Configure build secrets
+        env:
+          DJI_API_KEY: ${{ secrets.DJI_API_KEY }}
+        run: |
+          if [ -z "$DJI_API_KEY" ]; then
+            echo "DJI_API_KEY secret is not configured" >&2
+            exit 1
+          fi
+
+          cat > local.properties <<EOL
+          sdk.dir=$ANDROID_SDK_ROOT
+          ndk.dir=$ANDROID_SDK_ROOT/ndk/26.3.11579264
+          DJI_API_KEY=$DJI_API_KEY
+          EOL
+
+          sed -i "s/INSERT_API_KEY_HERE/${DJI_API_KEY//\//\\\/}/g" app/src/main/AndroidManifest.xml
+
+      - name: Lint and unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
