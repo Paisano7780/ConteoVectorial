@@ -13,7 +13,7 @@
  *   y se convertirá a BGR/RGB sólo cuando sea estrictamente necesario.
  */
 extern "C" JNIEXPORT jfloatArray JNICALL
-Java_com_paisano_conteovectorial_nativebridge_NativeVisionBridge_inferKeypointsFromNv21(
+Java_com_desdelaire_vectorcount_nativebridge_NativeVisionBridge_inferKeypointsFromNv21(
         JNIEnv *env,
         jobject /*thiz*/,
         jbyteArray frame_nv21,
