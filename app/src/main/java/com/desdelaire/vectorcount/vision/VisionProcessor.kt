@@ -1,4 +1,4 @@
-package com.paisano.conteovectorial.vision
+package com.desdelaire.vectorcount.vision
 
 import android.graphics.Bitmap
 
