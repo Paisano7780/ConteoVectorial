@@ -44,11 +44,17 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private lateinit var sdkStatusText: TextView
     private lateinit var flightModeText: TextView
+    private lateinit var flightEventText: TextView
     private lateinit var batteryText: TextView
-    private lateinit var rcSignalText: TextView
+    private lateinit var flightTimeText: TextView
+    private lateinit var rcBatteryText: TextView
     private lateinit var satellitesText: TextView
     private lateinit var altDistText: TextView
     private lateinit var compassImage: ImageView
+    @Volatile
+    private var latestRcMode: RemoteControllerFlightMode? = null
+    @Volatile
+    private var latestModeString: String? = null
     private val telemetryManager = TelemetryManager()
     @Volatile
     private var homeLocation: LocationCoordinate2D? = null
@@ -117,8 +123,10 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         hideSystemBars()
         sdkStatusText = findViewById(R.id.sdkStatusText)
         flightModeText = findViewById(R.id.flightModeText)
+        flightEventText = findViewById(R.id.flightEventText)
         batteryText = findViewById(R.id.batteryText)
-        rcSignalText = findViewById(R.id.rcSignalText)
+        flightTimeText = findViewById(R.id.flightTimeText)
+        rcBatteryText = findViewById(R.id.rcBatteryText)
         satellitesText = findViewById(R.id.satellitesText)
         altDistText = findViewById(R.id.altDistText)
         compassImage = findViewById(R.id.compassImage)
@@ -322,21 +330,29 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 runOnUiThread { batteryText.text = "$percent%" }
             }
 
+            override fun onRcBatteryPercent(percent: Int) {
+                runOnUiThread { rcBatteryText.text = "RC $percent%" }
+            }
+
+            override fun onRemainingFlightTime(seconds: Int) {
+                runOnUiThread { flightTimeText.text = formatFlightTime(seconds) }
+            }
+
             override fun onFlightModeString(flightMode: String?) {
-                if (flightMode.isNullOrBlank()) return
-                runOnUiThread { sdkStatusText.text = flightMode }
+                latestModeString = flightMode
+                runOnUiThread {
+                    flightModeText.text = friendlyFlightMode()
+                    updateFlightEvent(flightMode)
+                }
             }
 
             override fun onRcFlightMode(mode: RemoteControllerFlightMode?) {
-                runOnUiThread { flightModeText.text = shortRcFlightMode(mode) }
+                latestRcMode = mode
+                runOnUiThread { flightModeText.text = friendlyFlightMode() }
             }
 
             override fun onSatelliteCount(count: Int) {
                 runOnUiThread { satellitesText.text = "GPS $count" }
-            }
-
-            override fun onRcSignalQuality(quality: Int) {
-                runOnUiThread { rcSignalText.text = "RC $quality" }
             }
 
             override fun onAltitude(altitude: Double) {
@@ -363,15 +379,45 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         })
     }
 
-    private fun shortRcFlightMode(mode: RemoteControllerFlightMode?): String {
-        return when (mode) {
-            RemoteControllerFlightMode.P -> "N"
-            RemoteControllerFlightMode.S -> "S"
-            RemoteControllerFlightMode.T -> "C"
-            null, RemoteControllerFlightMode.UNKNOWN ->
-                getString(R.string.flight_mode_placeholder)
-            else -> mode.name
+    /**
+     * Mapea el modo de vuelo a un texto amigable Cine/Normal/Sport combinando el
+     * switch del control remoto y el string interno del FC ("Tripod", "P-GPS").
+     */
+    private fun friendlyFlightMode(): String {
+        val rc = latestRcMode
+        val modeString = latestModeString?.lowercase().orEmpty()
+        return when {
+            rc == RemoteControllerFlightMode.T ||
+                modeString.contains("tripod") || modeString.contains("cine") -> "Cine"
+            rc == RemoteControllerFlightMode.S || modeString.contains("sport") -> "Sport"
+            rc == RemoteControllerFlightMode.P ||
+                modeString.contains("gps") || modeString.contains("normal") ||
+                modeString.contains("position") || modeString.contains("atti") -> "Normal"
+            else -> getString(R.string.flight_mode_placeholder)
         }
+    }
+
+    /** Muestra eventos temporales (despegue/aterrizaje/RTH) en la capa central. */
+    private fun updateFlightEvent(flightMode: String?) {
+        val modeString = flightMode?.lowercase().orEmpty()
+        val event = when {
+            modeString.contains("takeoff") -> "Despegando"
+            modeString.contains("landing") || modeString.contains("land") -> "Aterrizando"
+            modeString.contains("gohome") || modeString.contains("return") ||
+                modeString.contains("rth") -> "Regresando"
+            else -> null
+        }
+        if (event == null) {
+            flightEventText.visibility = android.view.View.GONE
+        } else {
+            flightEventText.text = event
+            flightEventText.visibility = android.view.View.VISIBLE
+        }
+    }
+
+    private fun formatFlightTime(seconds: Int): String {
+        val safeSeconds = seconds.coerceAtLeast(0)
+        return "%02d:%02d".format(safeSeconds / 60, safeSeconds % 60)
     }
 
     private fun formatAltitudeDistance(): String {

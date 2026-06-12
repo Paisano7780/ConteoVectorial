@@ -14,7 +14,7 @@
     <!-- Flight UI -->
     <string name="flight_system_status">Despegue con precaución</string>
     <string name="flight_mode_label">Modo</string>
-    <string name="flight_mode_placeholder">N/S/C</string>
+    <string name="flight_mode_placeholder">Modo --</string>
     <string name="flight_battery_placeholder">--%</string>
     <string name="flight_time_placeholder">00:00</string>
     <string name="flight_rc_placeholder">RC --</string>

@@ -3,14 +3,6 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
-namespace {
-const char* OVERLAY_TEXT = "VectorCount Stream Activo";
-const int TEXT_X = 50;
-const int TEXT_Y = 50;
-const double FONT_SCALE = 1.0;
-const int THICKNESS = 2;
-}
-
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_desdelaire_vectorcount_vision_VisionProcessor_processFrame(
         JNIEnv *env,
@@ -77,7 +69,6 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_processFrameToBitmap(
     cv::Mat yuvMat(height + height / 2, width, CV_8UC1, nv21_ptr);
     cv::Mat rgbaMat(height, width, CV_8UC4, pixels);
     cv::cvtColor(yuvMat, rgbaMat, cv::COLOR_YUV2RGBA_NV21);
-    cv::putText(rgbaMat, OVERLAY_TEXT, cv::Point(TEXT_X, TEXT_Y), cv::FONT_HERSHEY_SIMPLEX, FONT_SCALE, cv::Scalar(0, 255, 0, 255), THICKNESS);
     env->ReleaseByteArrayElements(yuvData, yuv_elements, JNI_ABORT);
     AndroidBitmap_unlockPixels(env, outBitmap);
     return JNI_TRUE;
