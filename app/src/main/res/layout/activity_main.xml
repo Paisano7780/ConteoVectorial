@@ -1,30 +1,238 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
 
     <SurfaceView
         android:id="@+id/cameraSurfaceView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/sdkStatusText"
+    <!-- ===================== TOP BAR ===================== -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/vc_panel_dark"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/sdkStatusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/flight_system_status"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/flightModeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="@string/flight_mode_placeholder"
+            android:textColor="@color/vc_accent"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/batteryText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:drawablePadding="4dp"
+            android:text="@string/flight_battery_placeholder"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/flightTimeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="@string/flight_time_placeholder"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/rcSignalText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="@string/flight_rc_placeholder"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/satellitesText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="@string/flight_gps_placeholder"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- ===================== LEFT PANEL: TAKEOFF ===================== -->
+    <ImageButton
+        android:id="@+id/takeoffButton"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="16dp"
+        android:background="@drawable/bg_circle_button"
+        android:contentDescription="@string/flight_takeoff"
+        android:padding="14dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_takeoff"
+        app:layout_constraintBottom_toTopOf="@id/miniMapContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintVertical_bias="0.5" />
+
+    <!-- ===================== BOTTOM-LEFT: MINI-MAP ===================== -->
+    <FrameLayout
+        android:id="@+id/miniMapContainer"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_margin="16dp"
+        android:background="@drawable/bg_minimap"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:id="@+id/compassImage"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/flight_minimap"
+            android:src="@drawable/ic_compass" />
+
+        <TextView
+            android:id="@+id/altDistText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:layout_margin="4dp"
+            android:text="@string/flight_alt_dist_placeholder"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="11sp" />
+    </FrameLayout>
+
+    <!-- ===================== BOTTOM-CENTER: CAMERA PARAMS ===================== -->
+    <LinearLayout
+        android:id="@+id/cameraParamsBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:layout_margin="16dp"
-        android:text="Registrando SDK..."
-        android:textSize="18sp" />
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_panel_dark"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/flight_cam_storage"
+            android:textColor="@color/vc_text_secondary"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="@string/flight_cam_resolution"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="@string/flight_cam_ev"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- ===================== RIGHT PANEL: CAMERA CONTROLS ===================== -->
+    <LinearLayout
+        android:id="@+id/rightControls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@id/captureFab"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintVertical_chainStyle="packed">
+
+        <ImageButton
+            android:id="@+id/autofocusButton"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="@string/flight_autofocus"
+            android:padding="12dp"
+            android:src="@drawable/ic_autofocus" />
+
+        <ImageButton
+            android:id="@+id/gimbalButton"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="@string/flight_gimbal"
+            android:padding="12dp"
+            android:src="@drawable/ic_gimbal" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cameraModeButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="@string/flight_cam_mode"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- ===================== CAPTURE BUTTON (DATA-LOGGER) ===================== -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/captureFab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
-        android:contentDescription="Capturar dataset"
-        app:srcCompat="@android:drawable/ic_menu_camera" />
+        android:contentDescription="@string/flight_capture"
+        app:backgroundTint="@color/vc_capture"
+        app:fabSize="normal"
+        app:maxImageSize="36dp"
+        app:srcCompat="@drawable/ic_capture"
+        app:tint="@color/vc_text_primary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-</FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

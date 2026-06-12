@@ -1,3 +1,27 @@
 <resources>
-    <string name="app_name">ConteoVectorial</string>
+    <string name="app_name">VectorCount</string>
+
+    <!-- Home -->
+    <string name="home_status_init">Inicializando SDK...</string>
+    <string name="home_open_flight">Monitor de Vuelo</string>
+    <string name="home_open_hitl">Validación HITL</string>
+
+    <!-- Flight UI -->
+    <string name="flight_system_status">Despegue con precaución</string>
+    <string name="flight_mode_label">Modo</string>
+    <string name="flight_mode_placeholder">N/S/C</string>
+    <string name="flight_battery_placeholder">--%</string>
+    <string name="flight_time_placeholder">00:00</string>
+    <string name="flight_rc_placeholder">RC --</string>
+    <string name="flight_gps_placeholder">GPS --</string>
+    <string name="flight_takeoff">Despegue automático</string>
+    <string name="flight_minimap">Mini-Mapa</string>
+    <string name="flight_alt_dist_placeholder">ALT -- m\nDIST -- m</string>
+    <string name="flight_cam_storage">Almacenamiento</string>
+    <string name="flight_cam_resolution">4K/30fps</string>
+    <string name="flight_cam_ev">EV 0.0</string>
+    <string name="flight_autofocus">AF</string>
+    <string name="flight_gimbal">Gimbal V/H</string>
+    <string name="flight_cam_mode">Auto/Manual</string>
+    <string name="flight_capture">Capturar dataset</string>
 </resources>
