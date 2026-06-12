@@ -31,7 +31,7 @@ class KeypointCanvasView @JvmOverloads constructor(
     private var bitmapHeight = 0
     private var imageMatrix: Matrix? = null
     private var draggedPoint = -1
-    private val toleranceRadius = 50f
+    private val toleranceRadius = 200f
 
     var onPointsUpdated: ((ax: Float, ay: Float, bx: Float, by: Float) -> Unit)? = null
 

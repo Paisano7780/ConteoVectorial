@@ -1,141 +1,268 @@
 package com.desdelaire.vectorcount.hitl
 
+import android.app.Dialog
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Environment
-import android.view.GestureDetector
-import android.view.MotionEvent
+import android.util.TypedValue
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.GestureDetectorCompat
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.desdelaire.vectorcount.R
+import com.desdelaire.vectorcount.logging.FlightValidationLoggerService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.File
 
+/**
+ * Galería de auditoría HITL. Muestra todas las capturas .jpg de
+ * VectorCount_Dataset en una cuadrícula; cada miniatura indica si ya fue
+ * aprobada (existe .locked.txt → check verde) o está pendiente (cruz roja).
+ * Al tocar una miniatura se abre un editor a pantalla completa con
+ * KeypointCanvasView para ajustar los keypoints y aprobar (renombrar a
+ * .locked.txt). Sin swipe ni movimiento a carpetas valid/discarded.
+ */
 class HitlValidationActivity : AppCompatActivity() {
 
-    private lateinit var imageView: ImageView
-    private lateinit var keypointCanvas: KeypointCanvasView
+    private lateinit var recyclerView: RecyclerView
     private lateinit var statusText: TextView
-    private lateinit var gestureDetector: GestureDetectorCompat
-    private val dataset = mutableListOf<Pair<File, File>>()
-    private var currentIndex = 0
-    private var currentBitmap: Bitmap? = null
-    private var currentTxtFile: File? = null
+    private val items = mutableListOf<GalleryItem>()
+    private val adapter = GalleryAdapter()
+    private val loggerService by lazy { FlightValidationLoggerService(this) }
+    private var columnWidthPx = 0
+
+    private data class GalleryItem(val jpg: File, val txt: File?, val locked: Boolean)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hitl_validation)
-        imageView = findViewById(R.id.imageView)
-        keypointCanvas = findViewById(R.id.keypointCanvas)
+        recyclerView = findViewById(R.id.galleryRecyclerView)
         statusText = findViewById(R.id.statusText)
-        gestureDetector = GestureDetectorCompat(this, SwipeGestureListener())
-        keypointCanvas.onPointsUpdated = { ax, ay, bx, by ->
-            if (currentTxtFile != null) {
-                GlobalScope.launch(Dispatchers.IO) {
-                    updateKeypointFile(currentTxtFile!!, ax, ay, bx, by)
-                }
-            }
-        }
+        val columns = 3
+        columnWidthPx = (resources.displayMetrics.widthPixels - dp(8)) / columns
+        recyclerView.layoutManager = GridLayoutManager(this, columns)
+        recyclerView.adapter = adapter
+    }
+
+    override fun onResume() {
+        super.onResume()
         loadDatasetAsync()
+    }
+
+    private fun datasetDir(): File {
+        val baseDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
+        return File(baseDir, "VectorCount_Dataset")
     }
 
     private fun loadDatasetAsync() {
         GlobalScope.launch(Dispatchers.IO) {
-            dataset.clear()
-            currentIndex = 0
-            val baseDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
-            val datasetDir = File(baseDir, "VectorCount_Dataset")
-            if (!datasetDir.exists() || datasetDir.listFiles() == null) {
-                runOnUiThread {
-                    statusText.text = "No hay datos pendientes de auditoría"
-                    statusText.visibility = android.view.View.VISIBLE
-                    imageView.isEnabled = false
-                    keypointCanvas.isEnabled = false
+            val dir = datasetDir()
+            val jpgFiles = dir.listFiles { f -> f.name.endsWith(".jpg") }
+                ?.sortedBy { it.name } ?: emptyList()
+            val loaded = jpgFiles.map { jpg ->
+                val base = jpg.nameWithoutExtension
+                val lockedTxt = File(dir, "$base.locked.txt")
+                val plainTxt = File(dir, "$base.txt")
+                val txt = when {
+                    lockedTxt.exists() -> lockedTxt
+                    plainTxt.exists() -> plainTxt
+                    else -> null
                 }
-                return@launch
+                GalleryItem(jpg, txt, lockedTxt.exists())
             }
-            val jpgFiles = datasetDir.listFiles { f -> f.name.endsWith(".jpg") }?.associateBy {
-                it.nameWithoutExtension
-            } ?: emptyMap()
-            val txtFiles = datasetDir.listFiles { f -> f.name.endsWith(".txt") && !f.name.endsWith(".locked.txt") }
-                ?.associateBy { it.nameWithoutExtension } ?: emptyMap()
-            for ((key, txtFile) in txtFiles) {
-                val jpgFile = jpgFiles[key]
-                if (jpgFile != null) {
-                    dataset.add(jpgFile to txtFile)
-                }
-            }
-            dataset.sortBy { it.first.nameWithoutExtension }
             runOnUiThread {
-                if (dataset.isEmpty()) {
-                    statusText.text = "No hay datos pendientes de auditoría"
-                    statusText.visibility = android.view.View.VISIBLE
-                    imageView.isEnabled = false
-                    keypointCanvas.isEnabled = false
+                items.clear()
+                items.addAll(loaded)
+                adapter.notifyDataSetChanged()
+                if (items.isEmpty()) {
+                    statusText.text = "No hay imágenes en VectorCount_Dataset"
+                    statusText.visibility = View.VISIBLE
                 } else {
-                    statusText.visibility = android.view.View.GONE
-                    imageView.isEnabled = true
-                    keypointCanvas.isEnabled = true
-                    loadCurrent()
+                    statusText.visibility = View.GONE
                 }
             }
         }
     }
 
-    private fun loadCurrent() {
-        if (currentIndex < 0 || currentIndex >= dataset.size) {
-            statusText.text = "No hay datos pendientes de auditoría"
-            statusText.visibility = android.view.View.VISIBLE
-            return
-        }
-        val (jpgFile, txtFile) = dataset[currentIndex]
-        currentTxtFile = txtFile
-        GlobalScope.launch(Dispatchers.IO) {
-            val bitmap = BitmapFactory.decodeFile(jpgFile.absolutePath)
-            val keypoints = readKeypoints(txtFile)
-            runOnUiThread {
-                currentBitmap?.recycle()
-                currentBitmap = bitmap
-                imageView.setImageBitmap(bitmap)
-                if (bitmap != null && keypoints != null) {
-                    imageView.post {
-                        val screenWidth = imageView.width
-                        val screenHeight = imageView.height
-                        if (screenWidth > 0 && screenHeight > 0) {
-                            val scaleX = screenWidth.toFloat() / bitmap.width
-                            val scaleY = screenHeight.toFloat() / bitmap.height
-                            val scale = minOf(scaleX, scaleY)
-                            val offsetX = (screenWidth - bitmap.width * scale) / 2
-                            val offsetY = (screenHeight - bitmap.height * scale) / 2
-                            val pointAX = keypoints[0] * bitmap.width * scale + offsetX
-                            val pointAY = keypoints[1] * bitmap.height * scale + offsetY
-                            val pointBX = keypoints[2] * bitmap.width * scale + offsetX
-                            val pointBY = keypoints[3] * bitmap.height * scale + offsetY
-                            val matrix = Matrix().apply {
-                                setScale(scale, scale)
-                                postTranslate(offsetX, offsetY)
-                            }
-                            keypointCanvas.setKeypoints(pointAX, pointAY, pointBX, pointBY, bitmap.width, bitmap.height)
-                            keypointCanvas.setImageMatrix(matrix)
-                        }
-                    }
-                }
+    private fun dp(value: Int): Int = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
+    ).toInt()
+
+    // ----------------------- Galería -----------------------
+
+    private inner class GalleryAdapter : RecyclerView.Adapter<GalleryViewHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GalleryViewHolder {
+            val root = FrameLayout(this@HitlValidationActivity).apply {
+                layoutParams = RecyclerView.LayoutParams(columnWidthPx, columnWidthPx)
             }
+            val image = ImageView(this@HitlValidationActivity).apply {
+                layoutParams = FrameLayout.LayoutParams(MATCH, MATCH).apply {
+                    setMargins(dp(2), dp(2), dp(2), dp(2))
+                }
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                setBackgroundColor(Color.DKGRAY)
+            }
+            val badge = TextView(this@HitlValidationActivity).apply {
+                layoutParams = FrameLayout.LayoutParams(WRAP, WRAP).apply {
+                    gravity = Gravity.TOP or Gravity.END
+                    setMargins(0, dp(6), dp(6), 0)
+                }
+                textSize = 22f
+                setTypeface(typeface, Typeface.BOLD)
+                setShadowLayer(6f, 0f, 0f, Color.BLACK)
+            }
+            root.addView(image)
+            root.addView(badge)
+            return GalleryViewHolder(root, image, badge)
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        override fun onBindViewHolder(holder: GalleryViewHolder, position: Int) {
+            val item = items[position]
+            holder.badge.text = if (item.locked) "✓" else "✗"
+            holder.badge.setTextColor(
+                if (item.locked) Color.parseColor("#4CAF50") else Color.parseColor("#E53935")
+            )
+            holder.image.setImageBitmap(decodeThumbnail(item.jpg, columnWidthPx))
+            holder.itemView.setOnClickListener { openDetail(item) }
         }
     }
 
-    private fun readKeypoints(txtFile: File): FloatArray? {
+    private inner class GalleryViewHolder(
+        root: View,
+        val image: ImageView,
+        val badge: TextView
+    ) : RecyclerView.ViewHolder(root)
+
+    private fun decodeThumbnail(file: File, targetPx: Int): Bitmap? {
         return try {
-            val line = txtFile.readText().trim()
-            val parts = line.split(" ")
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, bounds)
+            var sample = 1
+            val maxDim = maxOf(bounds.outWidth, bounds.outHeight)
+            while (targetPx > 0 && maxDim / sample > targetPx * 2) {
+                sample *= 2
+            }
+            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+            BitmapFactory.decodeFile(file.absolutePath, opts)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // ----------------------- Editor de detalle -----------------------
+
+    private fun openDetail(item: GalleryItem) {
+        val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        val root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
+        val imageView = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(MATCH, MATCH)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        val canvas = KeypointCanvasView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(MATCH, MATCH)
+        }
+        val saveButton = Button(this).apply {
+            text = "Guardar"
+            layoutParams = FrameLayout.LayoutParams(WRAP, WRAP).apply {
+                gravity = Gravity.BOTTOM or Gravity.END
+                setMargins(0, 0, dp(16), dp(16))
+            }
+        }
+        val closeButton = Button(this).apply {
+            text = "Cerrar"
+            layoutParams = FrameLayout.LayoutParams(WRAP, WRAP).apply {
+                gravity = Gravity.BOTTOM or Gravity.START
+                setMargins(dp(16), 0, 0, dp(16))
+            }
+        }
+        root.addView(imageView)
+        root.addView(canvas)
+        root.addView(saveButton)
+        root.addView(closeButton)
+        dialog.setContentView(root)
+
+        // Coordenadas normalizadas vigentes. Si el .txt no existe o llega en 0f,
+        // se usan posiciones por defecto visibles (25% y 75% del ancho).
+        val normalized = floatArrayOf(0.25f, 0.5f, 0.75f, 0.5f)
+        val bitmap = BitmapFactory.decodeFile(item.jpg.absolutePath)
+        imageView.setImageBitmap(bitmap)
+        item.txt?.let { readKeypointsOrNull(it) }?.copyInto(normalized)
+
+        canvas.onPointsUpdated = { ax, ay, bx, by ->
+            normalized[0] = ax
+            normalized[1] = ay
+            normalized[2] = bx
+            normalized[3] = by
+        }
+
+        if (bitmap != null) {
+            imageView.post {
+                val vw = imageView.width
+                val vh = imageView.height
+                if (vw > 0 && vh > 0) {
+                    val scale = minOf(vw.toFloat() / bitmap.width, vh.toFloat() / bitmap.height)
+                    val offsetX = (vw - bitmap.width * scale) / 2
+                    val offsetY = (vh - bitmap.height * scale) / 2
+                    val ax = normalized[0] * bitmap.width * scale + offsetX
+                    val ay = normalized[1] * bitmap.height * scale + offsetY
+                    val bx = normalized[2] * bitmap.width * scale + offsetX
+                    val by = normalized[3] * bitmap.height * scale + offsetY
+                    val matrix = Matrix().apply {
+                        setScale(scale, scale)
+                        postTranslate(offsetX, offsetY)
+                    }
+                    canvas.setImageMatrix(matrix)
+                    canvas.setKeypoints(ax, ay, bx, by, bitmap.width, bitmap.height)
+                }
+            }
+        }
+
+        saveButton.setOnClickListener {
+            GlobalScope.launch(Dispatchers.IO) {
+                val dir = datasetDir()
+                val base = item.jpg.nameWithoutExtension
+                val targetTxt = item.txt ?: File(dir, "$base.txt")
+                loggerService.modify(targetTxt, normalized[0], normalized[1], normalized[2], normalized[3])
+                if (!targetTxt.name.endsWith(".locked.txt")) {
+                    loggerService.approve(targetTxt)
+                }
+                runOnUiThread {
+                    bitmap?.recycle()
+                    dialog.dismiss()
+                    loadDatasetAsync()
+                }
+            }
+        }
+        closeButton.setOnClickListener {
+            bitmap?.recycle()
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun readKeypointsOrNull(txtFile: File): FloatArray? {
+        return try {
+            val parts = txtFile.readText().trim().split(" ")
             if (parts.size >= 4) {
-                floatArrayOf(parts[0].toFloat(), parts[1].toFloat(), parts[2].toFloat(), parts[3].toFloat())
+                val arr = floatArrayOf(
+                    parts[0].toFloat(), parts[1].toFloat(),
+                    parts[2].toFloat(), parts[3].toFloat()
+                )
+                if (arr.all { it == 0f }) null else arr
             } else {
                 null
             }
@@ -144,101 +271,8 @@ class HitlValidationActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateKeypointFile(txtFile: File, ax: Float, ay: Float, bx: Float, by: Float) {
-        try {
-            txtFile.writeText("$ax $ay $bx $by\n")
-        } catch (e: Exception) {
-        }
-    }
-
-    private fun approveCurrentItem() {
-        if (currentIndex >= dataset.size) return
-        val (jpgFile, txtFile) = dataset[currentIndex]
-        GlobalScope.launch(Dispatchers.IO) {
-            val validDir = File(txtFile.parentFile, "valid").apply { mkdirs() }
-            val targetTxtFile = File(validDir, txtFile.name)
-            val targetJpgFile = File(validDir, jpgFile.name)
-            try {
-                jpgFile.renameTo(targetJpgFile)
-                txtFile.renameTo(targetTxtFile)
-            } catch (e: Exception) {
-            }
-            currentIndex++
-            runOnUiThread {
-                if (currentIndex < dataset.size) {
-                    loadCurrent()
-                } else {
-                    statusText.text = "No hay datos pendientes de auditoría"
-                    statusText.visibility = android.view.View.VISIBLE
-                }
-            }
-        }
-    }
-
-    private fun rejectCurrentItem() {
-        if (currentIndex >= dataset.size) return
-        val (jpgFile, txtFile) = dataset[currentIndex]
-        GlobalScope.launch(Dispatchers.IO) {
-            val discardedDir = File(txtFile.parentFile, "discarded").apply { mkdirs() }
-            val targetTxtFile = File(discardedDir, txtFile.name)
-            val targetJpgFile = File(discardedDir, jpgFile.name)
-            try {
-                jpgFile.renameTo(targetJpgFile)
-                txtFile.renameTo(targetTxtFile)
-            } catch (e: Exception) {
-            }
-            currentIndex++
-            runOnUiThread {
-                if (currentIndex < dataset.size) {
-                    loadCurrent()
-                } else {
-                    statusText.text = "No hay datos pendientes de auditoría"
-                    statusText.visibility = android.view.View.VISIBLE
-                }
-            }
-        }
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        if (ev != null) {
-            gestureDetector.onTouchEvent(ev)
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
-    private inner class SwipeGestureListener : GestureDetector.SimpleOnGestureListener() {
-        private val swipeThreshold = 100
-        private val swipeVelocityThreshold = 100
-
-        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
-            if (e1 == null) return false
-            val diffX = e2.x - e1.x
-            val diffY = e2.y - e1.y
-            return if (kotlin.math.abs(diffX) > kotlin.math.abs(diffY)) {
-                if (kotlin.math.abs(diffX) > swipeThreshold && kotlin.math.abs(velocityX) > swipeVelocityThreshold) {
-                    if (diffX > 0) {
-                        approveCurrentItem()
-                        true
-                    } else {
-                        rejectCurrentItem()
-                        true
-                    }
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        currentBitmap?.recycle()
+    companion object {
+        private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
+        private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
     }
 }
-
-
-
-
-
