@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">VectorCount</string>
+    <!-- Nombre único para el label del launcher: el SDK DJI redefine "app_name"
+         en algunos locales (ar/nl -> "DJI GO 4"/"DJI Pilot 2") y ganaría en
+         esos idiomas; este nombre no existe en la librería, así que siempre
+         resuelve a VectorCount. -->
+    <string name="vc_app_name">VectorCount</string>
 
     <!-- Home -->
     <string name="home_status_init">Inicializando SDK...</string>

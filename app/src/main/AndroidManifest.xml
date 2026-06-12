@@ -14,7 +14,7 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="@string/app_name"
+        android:label="@string/vc_app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.ConteoVectorial"
         tools:replace="android:label,android:icon">
@@ -25,7 +25,7 @@
 
         <activity
             android:name=".HomeActivity"
-            android:label="@string/app_name"
+            android:label="@string/vc_app_name"
             android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="true">
