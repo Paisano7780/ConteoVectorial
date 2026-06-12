@@ -1,4 +1,4 @@
-package com.paisano.conteovectorial
+package com.desdelaire.vectorcount
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -18,10 +18,10 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.paisano.conteovectorial.msdk.MsdkManager
-import com.paisano.conteovectorial.logging.FlightValidationLoggerService
-import com.paisano.conteovectorial.video.DjiVideoStreamRepository
-import com.paisano.conteovectorial.vision.VisionProcessor
+import com.desdelaire.vectorcount.msdk.MsdkManager
+import com.desdelaire.vectorcount.logging.FlightValidationLoggerService
+import com.desdelaire.vectorcount.video.DjiVideoStreamRepository
+import com.desdelaire.vectorcount.vision.VisionProcessor
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

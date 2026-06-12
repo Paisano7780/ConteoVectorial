@@ -34,22 +34,12 @@ jobs:
         run: |
           sdkmanager --install "ndk;26.3.11579264" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Configure build secrets
-        env:
-          DJI_API_KEY: ${{ secrets.DJI_API_KEY }}
+      - name: Configure local.properties
         run: |
-          if [ -z "$DJI_API_KEY" ]; then
-            echo "DJI_API_KEY secret is not configured" >&2
-            exit 1
-          fi
-
           cat > local.properties <<EOL
           sdk.dir=$ANDROID_SDK_ROOT
           ndk.dir=$ANDROID_SDK_ROOT/ndk/26.3.11579264
-          DJI_API_KEY=$DJI_API_KEY
           EOL
-
-          sed -i "s/INSERT_API_KEY_HERE/${DJI_API_KEY//\//\\\/}/g" app/src/main/AndroidManifest.xml
 
       - name: Lint and unit tests
         run: ./gradlew testDebugUnitTest
