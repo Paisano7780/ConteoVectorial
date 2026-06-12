@@ -15,81 +15,120 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- ===================== TOP BAR ===================== -->
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/vc_panel_dark"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:paddingHorizontal="16dp"
         android:paddingVertical="6dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
+        <!-- LEFT: estado de vuelo -->
         <TextView
             android:id="@+id/sdkStatusText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="@string/flight_system_status"
             android:textColor="@color/vc_text_primary"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- LEFT: modo de vuelo (Cine/Normal/Sport) -->
         <TextView
             android:id="@+id/flightModeText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:maxLines="1"
             android:text="@string/flight_mode_placeholder"
             android:textColor="@color/vc_accent"
             android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/sdkStatusText"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
+        <!-- CENTER: eventos temporales (Takeoff/Landing) en capa superior -->
         <TextView
-            android:id="@+id/batteryText"
+            android:id="@+id/flightEventText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:drawableStart="@drawable/ic_drone"
-            android:drawablePadding="4dp"
-            android:text="@string/flight_battery_placeholder"
-            android:textColor="@color/vc_text_primary"
+            android:elevation="8dp"
+            android:maxLines="1"
+            android:textColor="@color/vc_accent"
             android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/flightTimeText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="@string/flight_time_placeholder"
-            android:textColor="@color/vc_text_primary"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/rcSignalText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="@string/flight_rc_placeholder"
-            android:textColor="@color/vc_text_primary"
-            android:textSize="14sp" />
-
+        <!-- RIGHT: satélites GPS -->
         <TextView
             android:id="@+id/satellitesText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:maxLines="1"
             android:text="@string/flight_gps_placeholder"
             android:textColor="@color/vc_text_primary"
-            android:textSize="14sp" />
-    </LinearLayout>
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- RIGHT: batería del control remoto -->
+        <TextView
+            android:id="@+id/rcBatteryText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:maxLines="1"
+            android:text="@string/flight_rc_placeholder"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/satellitesText"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- RIGHT: tiempo de vuelo restante -->
+        <TextView
+            android:id="@+id/flightTimeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:maxLines="1"
+            android:text="@string/flight_time_placeholder"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/rcBatteryText"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- RIGHT: batería del dron -->
+        <TextView
+            android:id="@+id/batteryText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:drawableStart="@drawable/ic_drone"
+            android:drawablePadding="4dp"
+            android:maxLines="1"
+            android:text="@string/flight_battery_placeholder"
+            android:textColor="@color/vc_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/flightTimeText"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- ===================== LEFT PANEL: TAKEOFF ===================== -->
     <ImageButton

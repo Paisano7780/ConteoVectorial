@@ -1,9 +1,9 @@
 package com.desdelaire.vectorcount.telemetry
 
-import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.key.KeyTools
+import dji.sdk.keyvalue.key.RemoteControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
@@ -27,12 +27,26 @@ class TelemetryManager {
     fun start(callbacks: Callbacks) {
         val keyManager = KeyManager.getInstance()
 
+        // Batería de la aeronave.
         keyManager.listen(
             KeyTools.createKey(BatteryKey.KeyChargeRemainingInPercent),
             listenHolder, true
         ) { _, newValue -> newValue?.let { callbacks.onBatteryPercent(it) } }
 
-        // Estado de vuelo (texto): p. ej. "GPS", "Atti", "AutoLanding".
+        // Batería del control remoto.
+        keyManager.listen(
+            KeyTools.createKey(RemoteControllerKey.KeyBatteryInfo),
+            listenHolder, true
+        ) { _, newValue -> newValue?.batteryPercent?.let { callbacks.onRcBatteryPercent(it) } }
+
+        // Tiempo de vuelo restante estimado (segundos).
+        keyManager.listen(
+            KeyTools.createKey(FlightControllerKey.KeyRemainingFlightTime),
+            listenHolder, true
+        ) { _, newValue -> newValue?.let { callbacks.onRemainingFlightTime(it) } }
+
+        // Estado de vuelo (texto interno DJI): se mapea a Cine/Normal/Sport y a
+        // eventos temporales (despegue/aterrizaje) en la capa de UI.
         keyManager.listen(
             KeyTools.createKey(FlightControllerKey.KeyFlightModeString),
             listenHolder, true
@@ -48,11 +62,6 @@ class TelemetryManager {
             KeyTools.createKey(FlightControllerKey.KeyGPSSatelliteCount),
             listenHolder, true
         ) { _, newValue -> newValue?.let { callbacks.onSatelliteCount(it) } }
-
-        keyManager.listen(
-            KeyTools.createKey(AirLinkKey.KeySignalQuality),
-            listenHolder, true
-        ) { _, newValue -> newValue?.let { callbacks.onRcSignalQuality(it) } }
 
         // Altitud barométrica relativa al despegue: se actualiza de forma
         // continua e independiente del Home Point.
@@ -85,10 +94,11 @@ class TelemetryManager {
 
     interface Callbacks {
         fun onBatteryPercent(percent: Int)
+        fun onRcBatteryPercent(percent: Int)
+        fun onRemainingFlightTime(seconds: Int)
         fun onFlightModeString(flightMode: String?)
         fun onRcFlightMode(mode: RemoteControllerFlightMode?)
         fun onSatelliteCount(count: Int)
-        fun onRcSignalQuality(quality: Int)
         fun onAltitude(altitude: Double)
         fun onAircraftLocation(location: LocationCoordinate3D?)
         fun onHomeLocation(home: LocationCoordinate2D?)
