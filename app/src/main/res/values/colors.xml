@@ -1,0 +1,8 @@
+<resources>
+    <color name="vc_accent">#A6E22E</color>
+    <color name="vc_panel_dark">#B3000000</color>
+    <color name="vc_panel_gray">#80424242</color>
+    <color name="vc_text_primary">#FFFFFFFF</color>
+    <color name="vc_text_secondary">#FFCCCCCC</color>
+    <color name="vc_capture">#E53935</color>
+</resources>

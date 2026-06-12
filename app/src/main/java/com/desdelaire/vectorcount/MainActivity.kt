@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Rect
+import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -12,6 +13,7 @@ import android.os.HandlerThread
 import android.os.Message
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import android.util.Log
@@ -20,6 +22,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.desdelaire.vectorcount.msdk.MsdkManager
 import com.desdelaire.vectorcount.logging.FlightValidationLoggerService
+import com.desdelaire.vectorcount.telemetry.TelemetryManager
 import com.desdelaire.vectorcount.video.DjiVideoStreamRepository
 import com.desdelaire.vectorcount.vision.VisionProcessor
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -28,11 +31,23 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import dji.sdk.keyvalue.value.common.ComponentIndexType
+import dji.sdk.keyvalue.value.common.Attitude
+import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import dji.sdk.keyvalue.value.flightcontroller.FlightMode
 import dji.v5.common.error.IDJIError
 
 class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private lateinit var sdkStatusText: TextView
+    private lateinit var flightModeText: TextView
+    private lateinit var batteryText: TextView
+    private lateinit var rcSignalText: TextView
+    private lateinit var satellitesText: TextView
+    private lateinit var altDistText: TextView
+    private lateinit var compassImage: ImageView
+    private val telemetryManager = TelemetryManager()
+    @Volatile
+    private var homeLocation: LocationCoordinate3D? = null
 
     private val MSG_PROCESS_FRAME = 1
 
@@ -92,6 +107,12 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         sdkStatusText = findViewById(R.id.sdkStatusText)
+        flightModeText = findViewById(R.id.flightModeText)
+        batteryText = findViewById(R.id.batteryText)
+        rcSignalText = findViewById(R.id.rcSignalText)
+        satellitesText = findViewById(R.id.satellitesText)
+        altDistText = findViewById(R.id.altDistText)
+        compassImage = findViewById(R.id.compassImage)
         val captureFab = findViewById<FloatingActionButton>(R.id.captureFab)
         captureFab.setOnClickListener {
             captureFab.alpha = CAPTURE_FEEDBACK_ALPHA
@@ -170,12 +191,14 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         super.onResume()
         if (isSdkRegistered) {
             subscribeToVideo()
+            startTelemetry()
         }
     }
 
     override fun onPause() {
         super.onPause()
         unsubscribeFromVideo()
+        telemetryManager.stop()
     }
 
     override fun onDestroy() {
@@ -235,9 +258,10 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         MsdkManager.initSDK(this, object : MsdkManager.SDKRegistrationCallback {
             override fun onRegisterSuccess() {
                 runOnUiThread {
-                    sdkStatusText.text = "✅ SDK Registrado Exitosamente"
+                    sdkStatusText.text = getString(R.string.flight_system_status)
                     isSdkRegistered = true
                     subscribeToVideo()
+                    startTelemetry()
                 }
             }
 
@@ -266,6 +290,71 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private fun unsubscribeFromVideo() {
         videoStreamRepository.unsubscribe()
+    }
+
+    private fun startTelemetry() {
+        telemetryManager.start(object : TelemetryManager.Callbacks {
+            override fun onBatteryPercent(percent: Int) {
+                runOnUiThread { batteryText.text = "$percent%" }
+            }
+
+            override fun onFlightMode(flightMode: FlightMode?) {
+                runOnUiThread { flightModeText.text = shortFlightMode(flightMode) }
+            }
+
+            override fun onSatelliteCount(count: Int) {
+                runOnUiThread { satellitesText.text = "GPS $count" }
+            }
+
+            override fun onRcSignalQuality(quality: Int) {
+                runOnUiThread { rcSignalText.text = "RC $quality" }
+            }
+
+            override fun onAircraftLocation(location: LocationCoordinate3D?) {
+                if (location == null) return
+                if (homeLocation == null && location.latitude != null && location.longitude != null) {
+                    homeLocation = location
+                }
+                runOnUiThread { altDistText.text = formatAltitudeDistance(location) }
+            }
+
+            override fun onAircraftAttitude(attitude: Attitude?) {
+                val yaw = attitude?.yaw ?: return
+                runOnUiThread { compassImage.rotation = yaw.toFloat() }
+            }
+        })
+    }
+
+    private fun shortFlightMode(flightMode: FlightMode?): String {
+        if (flightMode == null) return getString(R.string.flight_mode_placeholder)
+        val name = flightMode.name
+        return when {
+            name.contains("SPORT") -> "S"
+            name.contains("CINE") || name.contains("TRIPOD") -> "C"
+            name.contains("NORMAL") || name.contains("NOVICE") ||
+                name.contains("GPS") || name.contains("ATTI") -> "N"
+            else -> name
+        }
+    }
+
+    private fun formatAltitudeDistance(location: LocationCoordinate3D): String {
+        val altitude = location.altitude ?: 0.0
+        val home = homeLocation
+        val distance = if (
+            home?.latitude != null && home.longitude != null &&
+            location.latitude != null && location.longitude != null
+        ) {
+            val results = FloatArray(1)
+            Location.distanceBetween(
+                home.latitude, home.longitude,
+                location.latitude, location.longitude,
+                results
+            )
+            results[0].toDouble()
+        } else {
+            0.0
+        }
+        return "ALT %.1f m\nDIST %.1f m".format(altitude, distance)
     }
 
     private fun processAndDrawFrame(
