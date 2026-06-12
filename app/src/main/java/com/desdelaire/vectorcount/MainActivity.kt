@@ -20,6 +20,9 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.desdelaire.vectorcount.msdk.MsdkManager
 import com.desdelaire.vectorcount.logging.FlightValidationLoggerService
 import com.desdelaire.vectorcount.telemetry.TelemetryManager
@@ -32,8 +35,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.sdk.keyvalue.value.common.Attitude
+import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
-import dji.sdk.keyvalue.value.flightcontroller.FlightMode
+import dji.sdk.keyvalue.value.flightcontroller.RemoteControllerFlightMode
 import dji.v5.common.error.IDJIError
 
 class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
@@ -47,7 +51,11 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private lateinit var compassImage: ImageView
     private val telemetryManager = TelemetryManager()
     @Volatile
-    private var homeLocation: LocationCoordinate3D? = null
+    private var homeLocation: LocationCoordinate2D? = null
+    @Volatile
+    private var aircraftLocation: LocationCoordinate3D? = null
+    @Volatile
+    private var altitudeMeters: Double = 0.0
 
     private val MSG_PROCESS_FRAME = 1
 
@@ -106,6 +114,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        hideSystemBars()
         sdkStatusText = findViewById(R.id.sdkStatusText)
         flightModeText = findViewById(R.id.flightModeText)
         batteryText = findViewById(R.id.batteryText)
@@ -185,6 +194,21 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         } else {
             ActivityCompat.requestPermissions(this, runtimePermissions, REQUEST_PERMISSIONS_CODE)
         }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideSystemBars()
+        }
+    }
+
+    private fun hideSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 
     override fun onResume() {
@@ -298,8 +322,13 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 runOnUiThread { batteryText.text = "$percent%" }
             }
 
-            override fun onFlightMode(flightMode: FlightMode?) {
-                runOnUiThread { flightModeText.text = shortFlightMode(flightMode) }
+            override fun onFlightModeString(flightMode: String?) {
+                if (flightMode.isNullOrBlank()) return
+                runOnUiThread { sdkStatusText.text = flightMode }
+            }
+
+            override fun onRcFlightMode(mode: RemoteControllerFlightMode?) {
+                runOnUiThread { flightModeText.text = shortRcFlightMode(mode) }
             }
 
             override fun onSatelliteCount(count: Int) {
@@ -310,12 +339,21 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 runOnUiThread { rcSignalText.text = "RC $quality" }
             }
 
+            override fun onAltitude(altitude: Double) {
+                altitudeMeters = altitude
+                runOnUiThread { altDistText.text = formatAltitudeDistance() }
+            }
+
             override fun onAircraftLocation(location: LocationCoordinate3D?) {
-                if (location == null) return
-                if (homeLocation == null && location.latitude != null && location.longitude != null) {
-                    homeLocation = location
+                aircraftLocation = location
+                runOnUiThread { altDistText.text = formatAltitudeDistance() }
+            }
+
+            override fun onHomeLocation(home: LocationCoordinate2D?) {
+                if (home?.latitude != null && home.longitude != null) {
+                    homeLocation = home
                 }
-                runOnUiThread { altDistText.text = formatAltitudeDistance(location) }
+                runOnUiThread { altDistText.text = formatAltitudeDistance() }
             }
 
             override fun onAircraftAttitude(attitude: Attitude?) {
@@ -325,36 +363,35 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
         })
     }
 
-    private fun shortFlightMode(flightMode: FlightMode?): String {
-        if (flightMode == null) return getString(R.string.flight_mode_placeholder)
-        val name = flightMode.name
-        return when {
-            name.contains("SPORT") -> "S"
-            name.contains("CINE") || name.contains("TRIPOD") -> "C"
-            name.contains("NORMAL") || name.contains("NOVICE") ||
-                name.contains("GPS") || name.contains("ATTI") -> "N"
-            else -> name
+    private fun shortRcFlightMode(mode: RemoteControllerFlightMode?): String {
+        return when (mode) {
+            RemoteControllerFlightMode.P -> "N"
+            RemoteControllerFlightMode.S -> "S"
+            RemoteControllerFlightMode.T -> "C"
+            null, RemoteControllerFlightMode.UNKNOWN ->
+                getString(R.string.flight_mode_placeholder)
+            else -> mode.name
         }
     }
 
-    private fun formatAltitudeDistance(location: LocationCoordinate3D): String {
-        val altitude = location.altitude ?: 0.0
+    private fun formatAltitudeDistance(): String {
         val home = homeLocation
-        val distance = if (
+        val aircraft = aircraftLocation
+        val distanceText = if (
             home?.latitude != null && home.longitude != null &&
-            location.latitude != null && location.longitude != null
+            aircraft?.latitude != null && aircraft.longitude != null
         ) {
             val results = FloatArray(1)
             Location.distanceBetween(
                 home.latitude, home.longitude,
-                location.latitude, location.longitude,
+                aircraft.latitude, aircraft.longitude,
                 results
             )
-            results[0].toDouble()
+            "%.1f m".format(results[0].toDouble())
         } else {
-            0.0
+            "-- m"
         }
-        return "ALT %.1f m\nDIST %.1f m".format(altitude, distance)
+        return "ALT %.1f m\nDIST %s".format(altitudeMeters, distanceText)
     }
 
     private fun processAndDrawFrame(
