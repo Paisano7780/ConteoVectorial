@@ -210,8 +210,8 @@ class HitlValidationActivity : AppCompatActivity() {
         private val swipeThreshold = 100
         private val swipeVelocityThreshold = 100
 
-        override fun onFling(e1: MotionEvent?, e2: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
-            if (e1 == null || e2 == null) return false
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+            if (e1 == null) return false
             val diffX = e2.x - e1.x
             val diffY = e2.y - e1.y
             return if (kotlin.math.abs(diffX) > kotlin.math.abs(diffY)) {

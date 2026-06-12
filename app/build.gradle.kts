@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "com.desdelaire.vectorcount"
     compileSdk = 35
+    ndkVersion = "26.3.11579264"
 
     defaultConfig {
         applicationId = "com.desdelaire.vectorcount"
@@ -18,6 +19,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags += listOf("-std=c++17", "-O2", "-fno-exceptions")
+                arguments += listOf("-DANDROID_STL=c++_shared")
             }
         }
         ndk {
@@ -50,6 +52,10 @@ android {
         }
     }
 
+    buildFeatures {
+        prefab = true
+    }
+
     packaging {
         jniLibs {
             useLegacyPackaging = false
@@ -65,7 +71,7 @@ dependencies {
     implementation("com.dji:dji-sdk-v5-aircraft:5.16.0")
     compileOnly("com.dji:dji-sdk-v5-aircraft-provided:5.16.0")
 
-    implementation("org.opencv:opencv-android:4.10.0")
+    implementation("org.opencv:opencv:4.10.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }

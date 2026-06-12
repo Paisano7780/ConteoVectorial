@@ -14,7 +14,6 @@ add_library(vectorcount_vision SHARED native-lib.cpp)
 
 target_link_libraries(native_vision_bridge log)
 target_link_libraries(vectorcount_vision
-        ncnn
         OpenCV::opencv_java4
         log
         jnigraphics

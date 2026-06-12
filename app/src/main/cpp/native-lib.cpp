@@ -83,9 +83,6 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_processFrameToBitmap(
     return JNI_TRUE;
 }
 
-#include <ncnn/net.h>
-static ncnn::Net yolov8;
-
 extern "C" JNIEXPORT jfloatArray JNICALL
 Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(JNIEnv *env, jobject thiz, jobject assetManager, jobject bitmap) {
     jfloatArray result = env->NewFloatArray(4);
