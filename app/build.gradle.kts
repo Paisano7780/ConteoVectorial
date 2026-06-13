@@ -25,7 +25,8 @@ android {
             }
         }
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            // ncnn/OpenCV prebuilts integrados solo traen arm64-v8a (target: Redmi Note 13 Pro)
+            abiFilters += listOf("arm64-v8a")
         }
     }
 
@@ -75,7 +76,7 @@ dependencies {
     compileOnly("com.dji:dji-sdk-v5-aircraft-provided:5.16.0")
 
     implementation("org.opencv:opencv:4.10.0")
-    implementation("com.github.nihui:ncnn:android-lib:20240914")
+    // NCNN se integra como prebuilt estatico local (app/src/main/cpp/ncnn), no via Maven
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
