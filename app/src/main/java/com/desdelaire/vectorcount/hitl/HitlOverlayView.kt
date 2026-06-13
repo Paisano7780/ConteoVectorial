@@ -46,6 +46,12 @@ class HitlOverlayView @JvmOverloads constructor(
 
     var onPointsChanged: ((ax: Float, ay: Float, bx: Float, by: Float) -> Unit)? = null
 
+    companion object {
+        private const val ARROW_HEAD_LENGTH = 30f
+        private const val ARROW_WING_ANGLE_RADIANS = PI / 6.0  // 30 degrees
+        private const val CIRCLE_RADIUS = 18f
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -53,10 +59,10 @@ class HitlOverlayView @JvmOverloads constructor(
         canvas.drawLine(pointAX, pointAY, pointBX, pointBY, linePaint)
 
         // Draw Point A (Origin) as green circle
-        canvas.drawCircle(pointAX, pointAY, 18f, originCirclePaint)
+        canvas.drawCircle(pointAX, pointAY, CIRCLE_RADIUS, originCirclePaint)
 
         // Draw Point B (Destination) as red circle
-        canvas.drawCircle(pointBX, pointBY, 18f, destinationCirclePaint)
+        canvas.drawCircle(pointBX, pointBY, CIRCLE_RADIUS, destinationCirclePaint)
 
         // Draw arrow head at Point B
         drawArrowHead(canvas, pointAX, pointAY, pointBX, pointBY)
@@ -66,20 +72,16 @@ class HitlOverlayView @JvmOverloads constructor(
         // Calculate angle from A to B
         val angle = atan2(endY - startY, endX - startX)
 
-        // Arrow head dimensions
-        val arrowLength = 30f
-        val arrowWidthAngle = PI / 6.0  // 30 degrees for arrow wings
-
         // Calculate arrow head base point (offset from B along the line)
-        val baseX = endX - arrowLength * cos(angle).toFloat()
-        val baseY = endY - arrowLength * sin(angle).toFloat()
+        val baseX = endX - ARROW_HEAD_LENGTH * cos(angle).toFloat()
+        val baseY = endY - ARROW_HEAD_LENGTH * sin(angle).toFloat()
 
         // Calculate left and right points of arrow head
-        val leftX = baseX + arrowLength * cos(angle + arrowWidthAngle).toFloat()
-        val leftY = baseY + arrowLength * sin(angle + arrowWidthAngle).toFloat()
+        val leftX = baseX + ARROW_HEAD_LENGTH * cos(angle + ARROW_WING_ANGLE_RADIANS).toFloat()
+        val leftY = baseY + ARROW_HEAD_LENGTH * sin(angle + ARROW_WING_ANGLE_RADIANS).toFloat()
 
-        val rightX = baseX + arrowLength * cos(angle - arrowWidthAngle).toFloat()
-        val rightY = baseY + arrowLength * sin(angle - arrowWidthAngle).toFloat()
+        val rightX = baseX + ARROW_HEAD_LENGTH * cos(angle - ARROW_WING_ANGLE_RADIANS).toFloat()
+        val rightY = baseY + ARROW_HEAD_LENGTH * sin(angle - ARROW_WING_ANGLE_RADIANS).toFloat()
 
         // Create path for arrow head triangle
         val path = Path()

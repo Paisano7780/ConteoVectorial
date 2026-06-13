@@ -212,18 +212,20 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(
     for (int i = 0; i < out.h; i++) {
         const float* row = out.row(i);
         float conf = row[4];
-        if (conf > 0.6f && conf > best_conf && out.w >= 10) {
-            best_conf = conf;
-            // Normalizamos por el tamano de entrada de la red.
-            best_kp = {
-                row[5] / kTargetSize, row[6] / kTargetSize,
-                row[8] / kTargetSize, row[9] / kTargetSize
-            };
+        if (conf > 0.6f) {
             detection_count++;
+            if (conf > best_conf && out.w >= 10) {
+                best_conf = conf;
+                // Normalizamos por el tamano de entrada de la red.
+                best_kp = {
+                    row[5] / kTargetSize, row[6] / kTargetSize,
+                    row[8] / kTargetSize, row[9] / kTargetSize
+                };
+            }
         }
     }
     
-    if (detection_count > 0 && best_conf > 0.6f) {
+    if (detection_count > 0) {
         LOGD("Detection results: detected_objects=%d, best_confidence=%.3f", detection_count, best_conf);
     }
 
