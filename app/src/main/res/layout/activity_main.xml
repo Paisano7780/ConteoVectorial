@@ -5,14 +5,37 @@
     android:layout_height="match_parent"
     android:background="@android:color/black">
 
-    <SurfaceView
-        android:id="@+id/cameraSurfaceView"
+    <!-- ===================== VIDEO CONTAINER: 16:9 Pillarboxing ===================== -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/videoContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:background="@android:color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintDimensionRatio="16:9">
+
+        <SurfaceView
+            android:id="@+id/cameraSurfaceView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Overlay for HITL trajectory visualization -->
+        <com.desdelaire.vectorcount.hitl.HitlOverlayView
+            android:id="@+id/hitlOverlay"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="@id/cameraSurfaceView"
+            app:layout_constraintEnd_toEndOf="@id/cameraSurfaceView"
+            app:layout_constraintStart_toStartOf="@id/cameraSurfaceView"
+            app:layout_constraintTop_toTopOf="@id/cameraSurfaceView" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- ===================== TOP BAR ===================== -->
     <androidx.constraintlayout.widget.ConstraintLayout
