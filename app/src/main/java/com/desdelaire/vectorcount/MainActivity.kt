@@ -477,6 +477,7 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
                     null
                 }
                 if (detectedKeypoints != null) {
+                    Log.d(TAG, "Detected keypoints count: ${detectedKeypoints.size / 2} objects (${detectedKeypoints.size} coordinates)")
                     synchronized(bitmapLock) {
                         latestKeypoints = detectedKeypoints
                     }
