@@ -11,6 +11,7 @@ import android.view.View
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.PI
 
 class HitlOverlayView @JvmOverloads constructor(
     context: Context,
@@ -67,7 +68,7 @@ class HitlOverlayView @JvmOverloads constructor(
 
         // Arrow head dimensions
         val arrowLength = 30f
-        val arrowWidthAngle = Math.PI / 6.0  // 30 degrees for arrow wings
+        val arrowWidthAngle = PI / 6.0  // 30 degrees for arrow wings
 
         // Calculate arrow head base point (offset from B along the line)
         val baseX = endX - arrowLength * cos(angle).toFloat()

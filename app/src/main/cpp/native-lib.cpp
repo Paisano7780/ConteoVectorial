@@ -223,7 +223,7 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(
         }
     }
     
-    if (detection_count > 0 || best_conf > 0.6f) {
+    if (detection_count > 0 && best_conf > 0.6f) {
         LOGD("Detection results: detected_objects=%d, best_confidence=%.3f", detection_count, best_conf);
     }
 
