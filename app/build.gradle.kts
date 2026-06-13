@@ -75,6 +75,7 @@ dependencies {
     compileOnly("com.dji:dji-sdk-v5-aircraft-provided:5.16.0")
 
     implementation("org.opencv:opencv:4.10.0")
+    implementation("com.github.nihui:ncnn:android-lib:20240914")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
