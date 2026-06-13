@@ -216,7 +216,7 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(
             detection_count++;
             if (conf > best_conf && out.w >= 10) {
                 best_conf = conf;
-                // Normalizamos por el tamano de entrada de la red.
+                // Normalizamos por el tamaño de entrada de la red.
                 best_kp = {
                     row[5] / kTargetSize, row[6] / kTargetSize,
                     row[8] / kTargetSize, row[9] / kTargetSize
@@ -225,7 +225,7 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(
         }
     }
     
-    if (detection_count > 0) {
+    if (best_conf > 0.6f) {
         LOGD("Detection results: detected_objects=%d, best_confidence=%.3f", detection_count, best_conf);
     }
 
