@@ -4,22 +4,38 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
 class HitlOverlayView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    private val pointPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        strokeWidth = 4f
+        style = Paint.Style.STROKE
+    }
+
+    private val originCirclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.GREEN
+        style = Paint.Style.FILL
+    }
+
+    private val destinationCirclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.RED
         style = Paint.Style.FILL
     }
-    private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.GREEN
-        strokeWidth = 4f
+
+    private val arrowHeadPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.RED
+        style = Paint.Style.FILL
     }
 
     var pointAX = 120f
@@ -31,9 +47,47 @@ class HitlOverlayView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+
+        // Draw main line from A to B
         canvas.drawLine(pointAX, pointAY, pointBX, pointBY, linePaint)
-        canvas.drawCircle(pointAX, pointAY, 18f, pointPaint)
-        canvas.drawCircle(pointBX, pointBY, 18f, pointPaint)
+
+        // Draw Point A (Origin) as green circle
+        canvas.drawCircle(pointAX, pointAY, 18f, originCirclePaint)
+
+        // Draw Point B (Destination) as red circle
+        canvas.drawCircle(pointBX, pointBY, 18f, destinationCirclePaint)
+
+        // Draw arrow head at Point B
+        drawArrowHead(canvas, pointAX, pointAY, pointBX, pointBY)
+    }
+
+    private fun drawArrowHead(canvas: Canvas, startX: Float, startY: Float, endX: Float, endY: Float) {
+        // Calculate angle from A to B
+        val angle = atan2(endY - startY, endX - startX)
+
+        // Arrow head dimensions
+        val arrowLength = 30f
+        val arrowWidthAngle = Math.PI / 6.0  // 30 degrees for arrow wings
+
+        // Calculate arrow head base point (offset from B along the line)
+        val baseX = endX - arrowLength * cos(angle).toFloat()
+        val baseY = endY - arrowLength * sin(angle).toFloat()
+
+        // Calculate left and right points of arrow head
+        val leftX = baseX + arrowLength * cos(angle + arrowWidthAngle).toFloat()
+        val leftY = baseY + arrowLength * sin(angle + arrowWidthAngle).toFloat()
+
+        val rightX = baseX + arrowLength * cos(angle - arrowWidthAngle).toFloat()
+        val rightY = baseY + arrowLength * sin(angle - arrowWidthAngle).toFloat()
+
+        // Create path for arrow head triangle
+        val path = Path()
+        path.moveTo(endX, endY)
+        path.lineTo(leftX, leftY)
+        path.lineTo(rightX, rightY)
+        path.close()
+
+        canvas.drawPath(path, arrowHeadPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

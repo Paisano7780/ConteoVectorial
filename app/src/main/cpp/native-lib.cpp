@@ -193,6 +193,8 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(
     ncnn::Mat in = bitmapToNcnnInput(rgba);
     AndroidBitmap_unlockPixels(env, bitmap);
 
+    LOGD("Input image shape: %dx%d, NCNN input: %dx%d", info.width, info.height, in.w, in.h);
+
     ncnn::Extractor ex = g_yolov8_pose.create_extractor();
     ex.input("in0", in);
 
@@ -206,6 +208,7 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(
     float best_conf = 0.f;
     std::vector<float> best_kp = {kDummyKeypoints[0], kDummyKeypoints[1],
                                   kDummyKeypoints[2], kDummyKeypoints[3]};
+    int detection_count = 0;
     for (int i = 0; i < out.h; i++) {
         const float* row = out.row(i);
         float conf = row[4];
@@ -216,7 +219,12 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(
                 row[5] / kTargetSize, row[6] / kTargetSize,
                 row[8] / kTargetSize, row[9] / kTargetSize
             };
+            detection_count++;
         }
+    }
+    
+    if (detection_count > 0 || best_conf > 0.6f) {
+        LOGD("Detection results: detected_objects=%d, best_confidence=%.3f", detection_count, best_conf);
     }
 
     return makeFloatArray(env, best_kp.data(), (int) best_kp.size());
