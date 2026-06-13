@@ -3,7 +3,7 @@ package com.desdelaire.vectorcount.nativebridge
 object NativeVisionBridge {
 
     init {
-        System.loadLibrary("native_vision_bridge")
+        System.loadLibrary("vectorcount_vision")
     }
 
     external fun inferKeypointsFromNv21(

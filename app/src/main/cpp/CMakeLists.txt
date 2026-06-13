@@ -1,21 +1,28 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(native_vision_bridge)
+project("vectorcount")
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# 1. Rutas a las cabeceras (Los archivos que acabas de subir)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/ncnn/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/opencv/include)
 
-if(NOT OpenCV_DIR AND OPENCV_DIR)
-    set(OpenCV_DIR ${OPENCV_DIR})
-endif()
-find_package(OpenCV REQUIRED)
+# 2. Importar librería NCNN precompilada
+add_library(ncnn STATIC IMPORTED)
+set_target_properties(ncnn PROPERTIES 
+    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/ncnn/lib/libncnn.a
+)
 
-add_library(native_vision_bridge SHARED native_vision_bridge.cpp)
+# 3. Importar librería OpenCV precompilada
+add_library(opencv_java4 SHARED IMPORTED)
+set_target_properties(opencv_java4 PROPERTIES 
+    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/opencv/libs/${ANDROID_ABI}/libopencv_java4.so
+)
+
+# 4. Compilar tu código nativo con el nombre correcto para Kotlin
 add_library(vectorcount_vision SHARED native-lib.cpp)
 
-target_link_libraries(native_vision_bridge log)
+# 5. Enlazar todo (Tu código + NCNN + OpenCV + Logs de Android)
 target_link_libraries(vectorcount_vision
-        OpenCV::opencv_java4
-        log
-        jnigraphics
-        android)
-
+    ncnn
+    opencv_java4
+    log
+)
