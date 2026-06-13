@@ -48,7 +48,8 @@ class HitlOverlayView @JvmOverloads constructor(
 
     companion object {
         private const val ARROW_HEAD_LENGTH = 30f
-        private const val ARROW_WING_ANGLE_RADIANS = Math.PI / 6.0  // 30 degrees
+        private const val ARROW_WING_FACTOR = 0.4  // Wing length as fraction of head length
+        private const val ARROW_WING_ANGLE_RADIANS = PI / 6.0  // 30 degrees
         private const val CIRCLE_RADIUS = 18f
     }
 
@@ -72,16 +73,19 @@ class HitlOverlayView @JvmOverloads constructor(
         // Calculate angle from A to B
         val angle = atan2(endY - startY, endX - startX)
 
-        // Calculate arrow head base point (offset from B along the line)
+        // Calculate arrow head base point (offset from B along the line, pointing backwards)
         val baseX = endX - ARROW_HEAD_LENGTH * cos(angle).toFloat()
         val baseY = endY - ARROW_HEAD_LENGTH * sin(angle).toFloat()
 
-        // Calculate left and right points of arrow head
-        val leftX = baseX + ARROW_HEAD_LENGTH * cos(angle + ARROW_WING_ANGLE_RADIANS).toFloat()
-        val leftY = baseY + ARROW_HEAD_LENGTH * sin(angle + ARROW_WING_ANGLE_RADIANS).toFloat()
+        // Arrow wing length
+        val wingLength = ARROW_HEAD_LENGTH * ARROW_WING_FACTOR
 
-        val rightX = baseX + ARROW_HEAD_LENGTH * cos(angle - ARROW_WING_ANGLE_RADIANS).toFloat()
-        val rightY = baseY + ARROW_HEAD_LENGTH * sin(angle - ARROW_WING_ANGLE_RADIANS).toFloat()
+        // Calculate left and right wing points (extending backwards from the tip)
+        val leftX = baseX + wingLength * cos(angle + ARROW_WING_ANGLE_RADIANS).toFloat()
+        val leftY = baseY + wingLength * sin(angle + ARROW_WING_ANGLE_RADIANS).toFloat()
+
+        val rightX = baseX + wingLength * cos(angle - ARROW_WING_ANGLE_RADIANS).toFloat()
+        val rightY = baseY + wingLength * sin(angle - ARROW_WING_ANGLE_RADIANS).toFloat()
 
         // Create path for arrow head triangle
         val path = Path()
