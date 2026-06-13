@@ -48,8 +48,8 @@ class HitlOverlayView @JvmOverloads constructor(
 
     companion object {
         private const val ARROW_HEAD_LENGTH = 30f
-        private const val ARROW_WING_FACTOR = 0.4  // Wing length as fraction of head length
-        private const val ARROW_WING_ANGLE_RADIANS = PI / 6.0  // 30 degrees
+        private const val ARROW_WING_FACTOR = 0.4f  // Wing length as fraction of head length
+        private const val ARROW_WING_ANGLE_RADIANS = (PI / 6.0).toFloat()  // 30 degrees
         private const val CIRCLE_RADIUS = 18f
     }
 
