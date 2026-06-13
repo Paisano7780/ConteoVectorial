@@ -48,7 +48,7 @@ class HitlOverlayView @JvmOverloads constructor(
 
     companion object {
         private const val ARROW_HEAD_LENGTH = 30f
-        private const val ARROW_WING_ANGLE_RADIANS = PI / 6.0  // 30 degrees
+        private const val ARROW_WING_ANGLE_RADIANS = Math.PI / 6.0  // 30 degrees
         private const val CIRCLE_RADIUS = 18f
     }
 

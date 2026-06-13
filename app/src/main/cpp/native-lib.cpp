@@ -216,7 +216,7 @@ Java_com_desdelaire_vectorcount_vision_VisionProcessor_detectKeypoints(
             detection_count++;
             if (conf > best_conf && out.w >= 10) {
                 best_conf = conf;
-                // Normalizamos por el tamaño de entrada de la red.
+                // Normalize by the network input size.
                 best_kp = {
                     row[5] / kTargetSize, row[6] / kTargetSize,
                     row[8] / kTargetSize, row[9] / kTargetSize
