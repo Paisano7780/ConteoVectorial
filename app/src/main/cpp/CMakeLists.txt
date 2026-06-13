@@ -1,18 +1,21 @@
 cmake_minimum_required(VERSION 3.22.1)
 project("vectorcount")
 
-# Find OpenCV
+# --- OpenCV (prefab desde la dependencia gradle org.opencv:opencv:4.10.0) ---
 find_package(OpenCV REQUIRED)
 
-# Find NCNN via Prefab
-find_package(ncnn REQUIRED CONFIG)
+# --- NCNN: prebuilt estatico local (sin Vulkan), resuelto por ABI ---
+# Trae lib/cmake/ncnn/ncnnConfig.cmake + libncnn.a en app/src/main/cpp/ncnn/<ABI>/
+set(ncnn_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ncnn/${ANDROID_ABI}/lib/cmake/ncnn")
+find_package(ncnn REQUIRED)
 
-# Compilar tu código nativo con el nombre correcto para Kotlin
+# --- Libreria nativa de vision (nombre que cargan VisionProcessor/NativeVisionBridge) ---
 add_library(vectorcount_vision SHARED native-lib.cpp)
 
-# Enlazar todo (Tu código + NCNN + OpenCV + Logs de Android)
 target_link_libraries(vectorcount_vision
-    ncnn::ncnn
-    ${OpenCV_LIBS}
+    ncnn
+    OpenCV::opencv_java4
+    jnigraphics
+    android
     log
 )
